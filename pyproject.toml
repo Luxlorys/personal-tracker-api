@@ -1,0 +1,136 @@
+[project]
+name = "personal-tracker-api"
+version = "0.1.0"
+description = "Personal tracker agent API"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "alembic>=1.17.0",
+    "asyncpg>=0.30.0",
+    "fastapi[standard]>=0.123.0",
+    "pydantic>=2.12.0",
+    "pydantic-settings>=2.11.0",
+    "redis>=6.4.0",
+    "sqlalchemy[asyncio]>=2.0.44",
+]
+
+[dependency-groups]
+dev = [
+    "coverage>=7.12.0",
+    "httpx>=0.28.1",
+    "import-linter>=2.3",
+    "pre-commit>=4.0.0",
+    "pytest>=9.0.1",
+    "pytest-asyncio>=1.3.0",
+    "ruff>=0.14.7",
+    "ty>=0.0.1a20",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/app"]
+
+# ---------------------------------------------------------------------------
+# Ruff — https://docs.astral.sh/ruff/
+# ---------------------------------------------------------------------------
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+src = ["src", "tests"]
+extend-exclude = [".idea", ".vscode", "migrations/versions"]
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "D1",      # missing docstrings — not required on every symbol
+    "D203",    # incompatible with D211
+    "D213",    # incompatible with D212
+    "COM812",  # conflicts with the formatter
+    "ISC001",  # conflicts with the formatter
+    "CPY001",  # no copyright headers
+    "EM",      # allow message literals passed to exceptions
+    "TRY003",  # allow message literals passed to exceptions
+    "TD002",   # TODO author not required
+    "TD003",   # TODO issue link not required
+    "FIX002",  # TODOs are allowed to exist
+    "ANN401",  # `Any` is occasionally the honest annotation
+    "DOC201",  # `Returns` section not required
+    "DOC501",  # `Raises` section not required
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+combine-as-imports = true
+
+[tool.ruff.lint.flake8-builtins]
+builtins-ignorelist = ["id"]
+
+[tool.ruff.lint.pylint]
+max-args = 7
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "PLR2004", "ANN201", "ARG001", "SLF001"]
+"migrations/*" = ["INP001", "ERA001"]
+"src/app/drivers/rest/exception_handlers.py" = ["ARG001"]  # FastAPI handlers must accept `request`
+"src/app/drivers/rest/routers/*" = ["FBT001", "FBT002"]    # query parameters are keyword-only over HTTP
+
+[tool.ruff.format]
+docstring-code-format = true
+
+# ---------------------------------------------------------------------------
+# ty — https://docs.astral.sh/ty/  (preview; pinned loosely on purpose)
+# ---------------------------------------------------------------------------
+[tool.ty.environment]
+python-version = "3.13"
+root = ["./src", "."]
+
+[tool.ty.src]
+include = ["src", "tests"]
+exclude = ["migrations/versions"]
+
+[tool.ty.terminal]
+output-format = "full"
+
+# ---------------------------------------------------------------------------
+# import-linter — machine-enforced dependency rule (see docs/architecture.md)
+# ---------------------------------------------------------------------------
+[tool.importlinter]
+root_package = "app"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Dependencies point inwards"
+type = "layers"
+layers = ["app.drivers", "app.adapters", "app.use_cases", "app.ports", "app.domain"]
+
+[[tool.importlinter.contracts]]
+name = "The inner layers know nothing about frameworks or configuration"
+type = "forbidden"
+source_modules = ["app.domain", "app.ports", "app.use_cases"]
+forbidden_modules = ["fastapi", "starlette", "sqlalchemy", "alembic", "redis", "pydantic", "app.config"]
+
+[[tool.importlinter.contracts]]
+name = "The domain is pure Python"
+type = "forbidden"
+source_modules = ["app.domain"]
+forbidden_modules = ["app.ports", "app.use_cases", "app.adapters", "app.drivers"]
+
+# ---------------------------------------------------------------------------
+# pytest / coverage
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+
+[tool.coverage.run]
+source = ["src/app"]
+omit = ["src/app/drivers/rest/main.py"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
