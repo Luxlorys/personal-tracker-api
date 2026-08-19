@@ -48,7 +48,7 @@ ENTRYPOINT ["/app/docker/entrypoint.sh"]
 ###############################################################################
 # runtime — slim, non-root, no build tooling
 ###############################################################################
-FROM python:3.13-slim-bookworm AS runtime
+FROM python:3.14-slim-bookworm AS runtime
 
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
